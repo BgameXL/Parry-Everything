@@ -1,6 +1,7 @@
 package dev.bgame;
 
 import com.mojang.logging.LogUtils;
+import dev.bgame.parry.Parry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -32,8 +33,8 @@ import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import org.slf4j.Logger;
 
-@Mod(parry_everything.MODID)
-public class parry_everything {
+@Mod(ParryEverything.MODID)
+public class ParryEverything {
     public static final String MODID = "parry_everything";
     private static final Logger LOGGER = LogUtils.getLogger();
     public static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(MODID);
@@ -49,8 +50,9 @@ public class parry_everything {
         output.accept(EXAMPLE_ITEM.get());
     }).build());
 
-    public parry_everything(IEventBus modEventBus, ModContainer modContainer) {
+    public ParryEverything(IEventBus modEventBus, ModContainer modContainer) {
         modEventBus.addListener(this::commonSetup);
+        Parry.register(modEventBus);
 
         BLOCKS.register(modEventBus);
         ITEMS.register(modEventBus);

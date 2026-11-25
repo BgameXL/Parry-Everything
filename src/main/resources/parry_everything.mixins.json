@@ -4,6 +4,7 @@
   "package": "dev.bgame.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "MeleeAttackGoalMixin"
   ],
   "client": [
   ],

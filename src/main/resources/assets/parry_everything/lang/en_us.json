@@ -1,5 +1,7 @@
 {
   "itemGroup.parry_everything": "Example Mod Tab",
   "block.parry_everything.example_block": "Example Block",
-  "item.parry_everything.example_item": "Example Item"
+  "item.parry_everything.example_item": "Example Item",
+  "key.categories.parry_everything": "Parry Everything",
+  "key.parry_everything.parry": "Parry"
 }
