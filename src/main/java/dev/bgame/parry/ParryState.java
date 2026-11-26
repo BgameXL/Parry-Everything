@@ -1,7 +1,7 @@
 package dev.bgame.parry;
 
 final class ParryState {
-    private static final int ACTIVE_TICKS = 4;
+    static final int ACTIVE_TICKS = 4;
     private static final int PERFECT_TICKS = 2;
     private static final int MISS_RECOVERY_TICKS = 12;
     private static final int SUCCESS_RECOVERY_TICKS = 6;

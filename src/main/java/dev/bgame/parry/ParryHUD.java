@@ -21,8 +21,10 @@ import java.util.Map;
 @EventBusSubscriber(modid = ParryEverything.MODID, value = Dist.CLIENT)
 final class ParryHUD {
     private static final long HIT_DISPLAY_MILLIS = 350;
-    private static final int WARNING_MILLIS = Parry.MELEE_WINDUP_TICKS * SharedConstants.MILLIS_PER_TICK;
-    private static final Map<Integer, Long> MELEE_WARNINGS = new HashMap<>();
+    private static final int WARNING_MILLIS =
+            Math.max(Parry.MELEE_WINDUP_TICKS, ArrowWarnings.LOOKAHEAD_TICKS) * SharedConstants.MILLIS_PER_TICK;
+    private static final int PARRY_CUE_MILLIS = (ParryState.ACTIVE_TICKS - 1) * SharedConstants.MILLIS_PER_TICK;
+    private static final Map<Integer, Long> ATTACK_WARNINGS = new HashMap<>();
     private static long hitVisibleUntil;
     private static boolean perfect;
 
@@ -31,11 +33,11 @@ final class ParryHUD {
         hitVisibleUntil = Util.getMillis() + HIT_DISPLAY_MILLIS;
     }
 
-    static void updateMeleeWarning(int attackerId, boolean active) {
-        if (active) {
-            MELEE_WARNINGS.put(attackerId, Util.getMillis() + WARNING_MILLIS);
+    static void updateWarning(int entityId, int ticksUntilImpact) {
+        if (ticksUntilImpact > 0) {
+            ATTACK_WARNINGS.put(entityId, Util.getMillis() + (long) ticksUntilImpact * SharedConstants.MILLIS_PER_TICK);
         } else {
-            MELEE_WARNINGS.remove(attackerId);
+            ATTACK_WARNINGS.remove(entityId);
         }
     }
 
@@ -49,13 +51,13 @@ final class ParryHUD {
     @SubscribeEvent
     static void onLogout(ClientPlayerNetworkEvent.LoggingOut event) {
         hitVisibleUntil = 0;
-        MELEE_WARNINGS.clear();
+        ATTACK_WARNINGS.clear();
     }
 
     private static void render(GuiGraphics graphics, DeltaTracker deltaTracker) {
         long now = Util.getMillis();
         boolean showHit = hitVisibleUntil > now;
-        if (!showHit && MELEE_WARNINGS.isEmpty()) {
+        if (!showHit && ATTACK_WARNINGS.isEmpty()) {
             return;
         }
 
@@ -64,15 +66,15 @@ final class ParryHUD {
             return;
         }
 
-        renderMeleeWarning(graphics, now);
+        renderWarning(graphics, now);
         if (showHit) {
             renderHit(graphics);
         }
     }
 
-    private static void renderMeleeWarning(GuiGraphics graphics, long now) {
+    private static void renderWarning(GuiGraphics graphics, long now) {
         long nextAttack = Long.MAX_VALUE;
-        for (var warnings = MELEE_WARNINGS.values().iterator(); warnings.hasNext(); ) {
+        for (var warnings = ATTACK_WARNINGS.values().iterator(); warnings.hasNext(); ) {
             long expiresAt = warnings.next();
             if (expiresAt <= now) {
                 warnings.remove();
@@ -87,11 +89,13 @@ final class ParryHUD {
         int width = 26;
         int x = (graphics.guiWidth() - width) / 2;
         int y = graphics.guiHeight() / 2 - 16;
-        float progress = 1f - (nextAttack - now) / (float) WARNING_MILLIS;
+        long remaining = nextAttack - now;
+        float progress = 1f - remaining / (float) WARNING_MILLIS;
         int filled = Math.max(1, Math.round(width * progress));
+        int color = remaining <= PARRY_CUE_MILLIS ? 0xFFFFC78A : 0xFFFF635C;
         graphics.fill(x - 1, y - 1, x + width + 1, y + 3, 0xD0121011);
         graphics.fill(x, y, x + width, y + 2, 0xFF742C35);
-        graphics.fill(x, y, x + filled, y + 2, 0xFFFF635C);
+        graphics.fill(x, y, x + filled, y + 2, color);
     }
 
     private static void renderHit(GuiGraphics graphics) {
