@@ -2,6 +2,7 @@ package dev.bgame.parry;
 
 import dev.bgame.ParryEverything;
 import dev.bgame.mixin.Projectile;
+import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -30,6 +31,7 @@ import java.util.function.Supplier;
 
 public final class Parry {
     public static final int MELEE_WINDUP_TICKS = 8;
+    private static final double FALL_BOUNCE_SPEED = 0.65;
 
     private static final DeferredRegister<AttachmentType<?>> ATTACHMENTS =
             DeferredRegister.create(NeoForgeRegistries.ATTACHMENT_TYPES, ParryEverything.MODID);
@@ -79,6 +81,11 @@ public final class Parry {
         }
 
         DamageSource source = event.getSource();
+        if (source.is(DamageTypes.FALL)) {
+            onFallDamage(event, player);
+            return;
+        }
+
         if (!(source.getDirectEntity() instanceof Mob attacker) || source.getEntity() != attacker
                 || !(source.is(DamageTypes.MOB_ATTACK) || source.is(DamageTypes.MOB_ATTACK_NO_AGGRO)
                 || source.is(DamageTypes.STING))) {
@@ -94,6 +101,25 @@ public final class Parry {
         boolean perfect = result == ParryState.Result.PERFECT;
         if (perfect) {
             attacker.knockback(0.6, player.getX() - attacker.getX(), player.getZ() - attacker.getZ());
+        }
+        playFeedback(player, perfect);
+    }
+
+    private static void onFallDamage(LivingIncomingDamageEvent event, ServerPlayer player) {
+        if (!player.onGround() || player.fallDistance <= 0f) {
+            return;
+        }
+
+        ParryState.Result result = consumeParry(player);
+        if (result == ParryState.Result.NONE) {
+            return;
+        }
+
+        event.setCanceled(true);
+        boolean perfect = result == ParryState.Result.PERFECT;
+        if (perfect) {
+            player.setDeltaMovement(player.getDeltaMovement().with(Direction.Axis.Y, FALL_BOUNCE_SPEED));
+            player.hurtMarked = true;
         }
         playFeedback(player, perfect);
     }
